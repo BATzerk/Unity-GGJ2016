@@ -4,36 +4,21 @@ using System.Collections.Generic;
 
 public class WorldGenerator : MonoBehaviour {
 	// Properties
+	public PathNode sourceNode;
 
 
-	void Start () {
-		GenerateWorld ();
+
+	public void GenerateWorld() {
+		DestroyAllNodes ();
+
+		sourceNode = new GameObject ().AddComponent<PathNode> ();
+		sourceNode.Initialize (Vector2.zero, null, 10, Vector2.zero, 20f, 0);
 	}
 
-
-	private void GenerateWorld() {
-		// -- Step 1: Make nodes --
-		BranchNode sourceNode = new GameObject ().AddComponent<BranchNode> ();
-		sourceNode.Initialize (Vector2.zero, null, Vector2.zero, 2000, 0);
-
-
-	}
-
-
-	private void Update() {
-		AcceptButtonInput ();
-	}
-
-	private void AcceptButtonInput() {
-		if (Input.GetKeyDown (KeyCode.Return)) {
-			DestroyAllNodes();
-			GenerateWorld();
-		}
-	}
 
 
 	private void DestroyAllNodes() {
-		BranchNode[] allNodes = GameObject.FindObjectsOfType<BranchNode> ();
+		PathNode[] allNodes = GameObject.FindObjectsOfType<PathNode> ();
 		for (int i=0; i<allNodes.Length; i++) {
 			Destroy (allNodes[i].gameObject);
 		}
