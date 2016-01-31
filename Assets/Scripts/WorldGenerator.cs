@@ -14,14 +14,14 @@ public class WorldGenerator : MonoBehaviour {
 	}
 
 
-	public void GenerateWorld() {
+	public void GenerateWorld(GameController gameControllerRef) {
 		DestroyAllNodes ();
 
 		// Make the first TWO nodes.
 		sourceNode = Instantiate (pathNodePrefab).GetComponent<PathNode> ();
-		sourceNode.Initialize (Vector2.zero, null, 10, 0, 0);
+		sourceNode.Initialize (gameControllerRef, Vector2.zero, null, 10, 0, 0);
 		PathNode secondNode = Instantiate (pathNodePrefab).GetComponent<PathNode> ();
-		secondNode.Initialize (new Vector2(0,0.5f), null, 4, 50, 0);
+		secondNode.Initialize (gameControllerRef, new Vector2(0,0.5f), null, 4, 50, 0);
 		sourceNode.nextNodes.Add (secondNode);
 		secondNode.previousNode = sourceNode;
 	}

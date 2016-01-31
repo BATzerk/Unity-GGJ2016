@@ -26,7 +26,7 @@ public class GameController : MonoBehaviour {
 	}
 	private void ResetGame() {
 		// Generate world!
-		worldGenerator.GenerateWorld ();
+		worldGenerator.GenerateWorld (this);
 		// Reset travelers!
 		DestroyAllTravelers ();
 		GameObject travelerPrefab = (GameObject) Resources.Load ("Prefabs/Traveler");

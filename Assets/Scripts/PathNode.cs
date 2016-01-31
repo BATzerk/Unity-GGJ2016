@@ -9,7 +9,9 @@ public class PathNode : MonoBehaviour {
 	[SerializeField] private SpriteRenderer auraSprite;
 	[SerializeField] private SpriteRenderer lineSprite;
 	// Properties
+	private Vector3 anchorPos; // where I AIM to be yo
 	private Vector3 displayPos;
+	private Vector3 vel = Vector3.zero;
 	private float creationSpeed;
 	public float familiarity = 0.3f; // determines brightness
 	private float charge; // determines color
@@ -20,14 +22,16 @@ public class PathNode : MonoBehaviour {
 	private int numNodesUntilBranch;
 	private Rect boundsRect;
 	// References
+	private GameController gameControllerRef;
 	public PathNode previousNode;
 	public List<PathNode> nextNodes;
 
 	// Getters
-	private float angleFromPreviousNode {
+	public Vector3 AnchorPos { get { return anchorPos; } }
+	private float AnchorAngleFromPreviousNodeAnchor {
 		get {
 			if (previousNode != null) {
-				return Mathf.Atan2 (transform.localPosition.y - previousNode.transform.localPosition.y, transform.localPosition.x - previousNode.transform.localPosition.x);
+				return Mathf.Atan2 (anchorPos.y - previousNode.AnchorPos.y, anchorPos.x - previousNode.AnchorPos.x);
 			}
 			return Mathf.PI * 0.5f; // Default to up.
 		}
@@ -35,8 +39,10 @@ public class PathNode : MonoBehaviour {
 
 
 	// Constructor
-	public void Initialize (Vector2 _pos, PathNode _previousNode, int _numNodesUntilBranch, float _creationSpeed, float _nextNodeAngleDif) {
-		this.transform.localPosition = _pos;
+	public void Initialize (GameController _gameControllerRef, Vector2 _pos, PathNode _previousNode, int _numNodesUntilBranch, float _creationSpeed, float _nextNodeAngleDif) {
+		gameControllerRef = _gameControllerRef;
+		anchorPos = _pos;
+		this.transform.localPosition = anchorPos;
 		previousNode = _previousNode;
 		numNodesUntilBranch = _numNodesUntilBranch;
 		creationSpeed = _creationSpeed;
@@ -54,16 +60,16 @@ public class PathNode : MonoBehaviour {
 
 	private void MakeNextNodeAttempt () {
 		float distanceToNextNode = 1f;
-		float angleToNextNode = angleFromPreviousNode + nextNodeAngleDif;//Random.Range (-0.5f, 0.5f);
-		Vector3 nextNodePos = transform.localPosition + new Vector3 (Mathf.Cos (angleToNextNode)*distanceToNextNode, Mathf.Sin (angleToNextNode)*distanceToNextNode, 0);
+		float angleToNextNode = AnchorAngleFromPreviousNodeAnchor + nextNodeAngleDif;//Random.Range (-0.5f, 0.5f);
+		Vector3 nextNodePos = anchorPos + new Vector3 (Mathf.Cos (angleToNextNode)*distanceToNextNode, Mathf.Sin (angleToNextNode)*distanceToNextNode, 0);
 		AddNextNode (nextNodePos);
 	}
 
 	private void MakeBranchNodeAttempt(bool isLeftTurn) {
 		float differenceVolume = Random.Range (0.5f, 1.5f);
 		float distanceToNextNode = 1.8f * differenceVolume;
-		float angleToNextNode = angleFromPreviousNode + (isLeftTurn ? -0.5f : 0.5f) * differenceVolume;
-		Vector3 nextNodePos = transform.localPosition + new Vector3 (Mathf.Cos (angleToNextNode)*distanceToNextNode, Mathf.Sin (angleToNextNode)*distanceToNextNode, 0);
+		float angleToNextNode = AnchorAngleFromPreviousNodeAnchor + (isLeftTurn ? -0.5f : 0.5f) * differenceVolume;
+		Vector3 nextNodePos = anchorPos + new Vector3 (Mathf.Cos (angleToNextNode)*distanceToNextNode, Mathf.Sin (angleToNextNode)*distanceToNextNode, 0);
 
 		// Make the next node!!
 		numNodesUntilBranch = Random.Range (2, 3);
@@ -85,7 +91,7 @@ public class PathNode : MonoBehaviour {
 		
 		GameObject pathNodePrefab = (GameObject)Resources.Load ("Prefabs/PathNode");
 		PathNode newNode = Instantiate (pathNodePrefab).GetComponent<PathNode> ();
-		newNode.Initialize (nextNodePos, this, numNodesUntilBranch, newNodeCreationSpeed, nextNodeAngleDif);
+		newNode.Initialize (gameControllerRef, nextNodePos, this, numNodesUntilBranch, newNodeCreationSpeed, nextNodeAngleDif);
 		nextNodes.Add (newNode);
 	}
 
@@ -122,6 +128,7 @@ public class PathNode : MonoBehaviour {
 
 		UpdateColor ();
 		UpdateLineThickness ();
+		UpdateAndApplyVel ();
 
 		// Already made our next guy? Okay then, don't do anything.
 		if (locFromPrevNode >= 1) { return; }
@@ -131,7 +138,7 @@ public class PathNode : MonoBehaviour {
 		// Apply friction!
 		creationSpeed *= Mathf.Pow(creationSpeedFriction, Time.deltaTime*GameProperties.WORLD_TIME_SCALE);
 
-		float distanceToPreviousNode = Vector3.Distance (transform.localPosition, previousNode.transform.localPosition);
+		float distanceToPreviousNode = Vector3.Distance (anchorPos, previousNode.AnchorPos);
 		locFromPrevNode += creationSpeed/distanceToPreviousNode*Time.deltaTime;
 		if (locFromPrevNode >= 1) {
 			// DO branch.
@@ -153,7 +160,7 @@ public class PathNode : MonoBehaviour {
 
 	private void UpdateColor () {
 //		Color myColor = Color.Lerp(Color.blue, Color.yellow, 0.5f + charge*0.5f);
-		float lerpAmount = Mathf.PerlinNoise (transform.localPosition.x/20f, transform.localPosition.y/20f);
+		float lerpAmount = Mathf.PerlinNoise (transform.localPosition.x/80f, transform.localPosition.y/80f);
 		Color myColor = Color.Lerp (new Color(0/255f,208/255f,255/255f), new Color(0/255f,64/255f,255/255f), lerpAmount);
 		myColor = new Color (myColor.r, myColor.g, myColor.b, 0.5f + familiarity*0.5f);
 		lineSprite.color = myColor;
@@ -173,6 +180,33 @@ public class PathNode : MonoBehaviour {
 		float thickness = 0.02f + familiarity * 0.2f;
 		float distanceBetweenNodes = Vector3.Distance (displayPos, previousNode.transform.localPosition);
 		GameUtils.SizeSprite (lineSprite, distanceBetweenNodes, thickness);
+	}
+
+	private void UpdateAndApplyVel() {
+		// Friction!
+		vel *= 0.98f;
+
+		// Ease back to position!
+		vel += (anchorPos-transform.localPosition) / 200f;
+
+		// Drift!
+		float timeOffset = Time.time*0.02f;
+		float posX = anchorPos.x;
+		float posY = anchorPos.y;
+//		float forceX = Mathf.PerlinNoise (posX*0.04f+timeOffset, posY*0.04f+timeOffset) - 0.5f;
+		//		float forceY = Mathf.PerlinNoise (posX*0.038f+200+timeOffset, posY*0.037f-300+timeOffset) - 0.5f;
+//		float forceX = Mathf.Sin (timeOffset);
+		//		float forceY = Mathf.Cos (timeOffset);
+		float distanceToMouse = Vector3.Distance (this.transform.localPosition, gameControllerRef.MousePosWorld);
+		float forceX = (gameControllerRef.MousePosWorld.x - transform.localPosition.x) / distanceToMouse;
+		float forceY = (gameControllerRef.MousePosWorld.y - transform.localPosition.y) / distanceToMouse;
+		forceX *= 0.01f;
+		forceY *= 0.01f;
+		vel += new Vector3 (forceX, forceY);
+
+		this.transform.localPosition += vel;
+
+		UpdatePosAndSize ();
 	}
 
 
