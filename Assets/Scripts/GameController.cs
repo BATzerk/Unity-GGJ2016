@@ -1,16 +1,28 @@
-﻿using UnityEngine;
+using UnityEngine;
+using UnityEngine.UI;
 using System.Collections;
 using System.Collections.Generic;
 
 public class GameController : MonoBehaviour {
+	// Events
+//	public delegate void TravelerReachTargetPathEndAction (Vector3 pos);
+//	public event TravelerReachTargetPathEndAction TravelerReachTargetPathEndEvent;
 	// Components
 	public PathNode sourceNode;
 	// Properties
+	private bool isGameOver;
 	private bool isPaused = false;
 	private float timeUntilCreateTraveler = -1;
+	private float targetPathLength;
 	private Vector3 mousePosWorld;
 	private Rect pathNodeBoundsRect;
+	private float timeUntilGameEnds;
 	// References
+	[SerializeField] AudioSource celestaAudio;
+	[SerializeField] AudioSource sparkleAudio;
+	[SerializeField] private EffectsManager effectsManagerRef;
+	[SerializeField] private Text scoreText;
+	[SerializeField] private Text gameOverText;
 	private Camera cameraRef;
 	private GameObject pathNodePrefab;
 	private GameObject travelerPrefab;
@@ -38,6 +50,11 @@ public class GameController : MonoBehaviour {
 		DestroyAllNodes ();
 		
 		pathNodeBoundsRect = new Rect ();
+		targetPathLength = 0;
+		isGameOver = false;
+		timeUntilGameEnds = 60f;
+		scoreText.enabled = false;
+		gameOverText.enabled = false;
 		
 		// Make the first TWO nodes.
 		sourceNode = Instantiate (pathNodePrefab).GetComponent<PathNode> ();
@@ -85,15 +102,22 @@ public class GameController : MonoBehaviour {
 
 		AcceptButtonInput ();
 
-		timeUntilCreateTraveler -= Mathf.Max(0, (1-Input.GetAxis ("Vertical")*1.6f) * Time.deltaTime);
-		if (timeUntilCreateTraveler <= 0) {
-			AddTraveler ();
-			timeUntilCreateTraveler = 2.5f;
-		}
+		if (!isGameOver) {
+			timeUntilCreateTraveler -= Mathf.Max (0, (1 - Input.GetAxis ("Vertical") * 1.6f) * Time.deltaTime);
+			if (timeUntilCreateTraveler <= 0) {
+				AddTraveler ();
+				timeUntilCreateTraveler = 2f;
+			}
 //		}
 //		else {
 //			timeUntilCreateTraveler = -1;
 //		}
+
+			timeUntilGameEnds -= Time.deltaTime;
+			if (timeUntilGameEnds <= 0) {
+				EndGame ();
+			}
+		}
 	}
 
 
@@ -105,9 +129,31 @@ public class GameController : MonoBehaviour {
 			isPaused = !isPaused;
 			Time.timeScale = isPaused ? 0 : 1;
 		}
+		else if (isGameOver && (Input.GetButtonDown("Submit") || Input.GetKeyDown(KeyCode.Return))) {
+			ResetGame();
+		}
 //		else if (Input.GetKeyDown (KeyCode.Space)) {
 //			AddTraveler ();
 //		}
+	}
+
+	
+	public void OnTravelerReachTargetPathEnd (PathNode pathNode) {
+		effectsManagerRef.OnTravelerReachTargetPathEnd (pathNode.transform.localPosition);
+		targetPathLength = pathNode.GetDistanceFromSourceNode (0);
+		scoreText.text = "Distance: " + ((int)targetPathLength);
+		celestaAudio.Play ();
+		sparkleAudio.Play ();
+	}
+
+
+	private void EndGame() {
+		isGameOver = true;
+		
+		scoreText.transform.localPosition = new Vector3(-Screen.width*0.5f + 20, -Screen.height*0.5f+16, 0);
+		gameOverText.transform.localPosition = new Vector3(Screen.width*0.5f - 20, -Screen.height*0.5f+16, 0);
+		scoreText.enabled = true;
+		gameOverText.enabled = true;
 	}
 
 	

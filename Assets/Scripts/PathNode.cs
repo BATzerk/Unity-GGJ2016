@@ -43,6 +43,14 @@ public class PathNode : MonoBehaviour {
 			return -Mathf.PI * 0.5f; // Default to down.
 		}
 	}
+	public float GetDistanceFromSourceNode(float distanceAlreadyTotaled) {
+		if (previousNode == null)
+			return distanceAlreadyTotaled;
+		else {
+			distanceAlreadyTotaled += Vector3.Distance(anchorPos, previousNode.AnchorPos);
+			return previousNode.GetDistanceFromSourceNode(distanceAlreadyTotaled);
+		}
+	}
 
 	
 	// ================================================================
@@ -159,7 +167,7 @@ public class PathNode : MonoBehaviour {
 		UpdateAndApplyVel ();
 		
 		// Maybe make next untravelable node!
-		/*
+		//*
 		if (familiarity > familiarityRequiredToEndorseUntravelableBranch) {
 			familiarityRequiredToEndorseUntravelableBranch += 0.6f * familiarity;
 			if (nextUntravelableNode == null) {
@@ -169,7 +177,7 @@ public class PathNode : MonoBehaviour {
 				nextUntravelableNode.AddCreationSpeedToChildren(10);
 			}
 		}
-		*/
+		//*/
 
 		// Already made our next guy? Okay then, don't do anything.
 		if (locFromPrevNode >= 1) { return; }
@@ -294,6 +302,9 @@ public class PathNode : MonoBehaviour {
 	}
 	public void OnTravelerReachMyDeadEnd() {
 		creationSpeed = 10f;
+		if (isTargetPath) {
+			gameControllerRef.OnTravelerReachTargetPathEnd (this);
+		}
 	}
 
 	public void PushFromTravelerInputForce(Vector2 inputForce) {

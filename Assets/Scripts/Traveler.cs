@@ -42,7 +42,6 @@ public class Traveler : MonoBehaviour {
 					float thisNodeAngle = nodeNext.nextNodes[i].DisplayAngleBetweenNodes;
 					float inputAngle = Mathf.Atan2 (inputForce.y, inputForce.x) * Mathf.Rad2Deg;
 					float angleDif = Mathf.Abs(GameUtils.GetDifferenceBetweenAngles(inputAngle, thisNodeAngle));
-					Debug.Log("inputAngle: " + inputAngle + "     angleDif: " + angleDif);
 					if (bestFitAngleDif > angleDif) {
 						bestFitAngleDif = angleDif;
 						bestFitIndex = i;
