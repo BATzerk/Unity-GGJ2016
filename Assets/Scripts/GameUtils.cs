@@ -31,6 +31,15 @@ public class GameUtils {
 		}
 	}
 
+	
+	public static float GetDifferenceBetweenAngles(float angleA, float angleB) {
+		// Keep both angles between -180 and 180.
+		float difference = angleA - angleB;
+		if (difference < -180) difference += 360;
+		else if (difference > 180) difference -= 360;
+		return difference;
+	}
+
 
 
 }

@@ -41,9 +41,9 @@ public class GameController : MonoBehaviour {
 		
 		// Make the first TWO nodes.
 		sourceNode = Instantiate (pathNodePrefab).GetComponent<PathNode> ();
-		sourceNode.Initialize (this, Vector2.zero, null, 10, 0, 0, true);
+		sourceNode.Initialize (this, Vector2.zero, null, 10, 0, 0, true, true);
 		PathNode secondNode = Instantiate (pathNodePrefab).GetComponent<PathNode> ();
-		secondNode.Initialize (this, new Vector2(0,-0.5f), null, 4, 50, 0, true);
+		secondNode.Initialize (this, new Vector2(0,-0.5f), null, 4, 50, 0, true, true);
 		sourceNode.nextNodes.Add (secondNode);
 		secondNode.previousNode = sourceNode;
 

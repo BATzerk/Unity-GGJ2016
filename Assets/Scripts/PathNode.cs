@@ -10,6 +10,7 @@ public class PathNode : MonoBehaviour {
 	[SerializeField] private SpriteRenderer auraSprite;
 	[SerializeField] private SpriteRenderer lineSprite;
 	// Properties
+	private bool isTargetPath;
 	private bool isTravelable;
 	private Vector3 anchorPos; // where I AIM to be yo
 	private Vector3 displayPos;
@@ -20,6 +21,7 @@ public class PathNode : MonoBehaviour {
 	private float charge; // determines color
 	private float nextNodeAngleDif; // plan this for the future
 	private float locFromPrevNode = 0; // we start at 0 and make it up to 1.
+	private float displayAngleBetweenNodes;
 	private int numNodesUntilBranch;
 	// References
 	private GameController gameControllerRef;
@@ -31,6 +33,7 @@ public class PathNode : MonoBehaviour {
 	// Getters
 	public bool IsTravelable { get { return isTravelable; } }
 	public float LocFromPrevNode { get { return locFromPrevNode; } }
+	public float DisplayAngleBetweenNodes { get { return displayAngleBetweenNodes; } }
 	public Vector3 AnchorPos { get { return anchorPos; } }
 	private float AnchorAngleFromPreviousNodeAnchor {
 		get {
@@ -45,10 +48,11 @@ public class PathNode : MonoBehaviour {
 	// ================================================================
 	//	Initialize
 	// ================================================================
-	public void Initialize (GameController _gameControllerRef, Vector2 _pos, PathNode _previousNode, int _numNodesUntilBranch, float _creationSpeed, float _nextNodeAngleDif, bool _isTravelable) {
+	public void Initialize (GameController _gameControllerRef, Vector2 _pos, PathNode _previousNode, int _numNodesUntilBranch, float _creationSpeed, float _nextNodeAngleDif, bool _isTargetPath, bool _isTravelable) {
 		gameControllerRef = _gameControllerRef;
 		anchorPos = _pos;
 		this.transform.localPosition = anchorPos;
+		isTargetPath = _isTargetPath;
 		isTravelable = _isTravelable;
 		previousNode = _previousNode;
 		numNodesUntilBranch = _numNodesUntilBranch;
@@ -72,10 +76,10 @@ public class PathNode : MonoBehaviour {
 		}
 		float angleToNextNode = AnchorAngleFromPreviousNodeAnchor + nextNodeAngleDif;//Random.Range (-0.5f, 0.5f);
 		Vector3 nextNodePos = anchorPos + new Vector3 (Mathf.Cos (angleToNextNode)*distanceToNextNode, Mathf.Sin (angleToNextNode)*distanceToNextNode, 0);
-		AddNextNode (nextNodePos);
+		AddNextNode (nextNodePos, isTargetPath);
 	}
 
-	private void MakeBranchNodeAttempt(bool isLeftTurn) {
+	private void MakeBranchNodeAttempt(bool isLeftTurn, bool doMakeTargetPath) {
 		float differenceVolume = Random.Range (0.5f, 1.5f);
 		float distanceToNextNode = 1.8f * differenceVolume;
 		if (!isTravelable) {
@@ -88,10 +92,10 @@ public class PathNode : MonoBehaviour {
 		numNodesUntilBranch = Random.Range (2, 3);
 		if (!isTravelable) { numNodesUntilBranch = 1; }
 		nextNodeAngleDif = Random.Range (-0.2f, 0.2f);
-		AddNextNode (nextNodePos);
+		AddNextNode (nextNodePos, doMakeTargetPath);
 	}
 	
-	private void AddNextNode(Vector3 nextNodePos) {
+	private void AddNextNode(Vector3 nextNodePos, bool doMakeTargetPath) {
 		// Creation speed too slow? Ehh, cut it out here, eh.
 		float newNodeCreationSpeed = creationSpeed*creationSpeedFriction;
 		if (newNodeCreationSpeed < 0.1f) {
@@ -100,7 +104,7 @@ public class PathNode : MonoBehaviour {
 		
 		GameObject pathNodePrefab = (GameObject)Resources.Load ("Prefabs/PathNode");
 		PathNode newNode = Instantiate (pathNodePrefab).GetComponent<PathNode> ();
-		newNode.Initialize (gameControllerRef, nextNodePos, this, numNodesUntilBranch, newNodeCreationSpeed, nextNodeAngleDif, isTravelable);
+		newNode.Initialize (gameControllerRef, nextNodePos, this, numNodesUntilBranch, newNodeCreationSpeed, nextNodeAngleDif, doMakeTargetPath, isTravelable);
 		nextNodes.Add (newNode);
 	}
 	private void AddNextUntravelableNode() {
@@ -112,7 +116,7 @@ public class PathNode : MonoBehaviour {
 		
 		GameObject pathNodePrefab = (GameObject)Resources.Load ("Prefabs/PathNode");
 		PathNode newNode = Instantiate (pathNodePrefab).GetComponent<PathNode> ();
-		newNode.Initialize (gameControllerRef, nextNodePos, this, 2, newNodeCreationSpeed, nextNodeAngleDif, false);
+		newNode.Initialize (gameControllerRef, nextNodePos, this, 2, newNodeCreationSpeed, nextNodeAngleDif, false, false);
 		nextUntravelableNode = (newNode);
 	}
 
@@ -184,8 +188,9 @@ public class PathNode : MonoBehaviour {
 			// DO branch.
 			if (numNodesUntilBranch-- <= 0) {
 				nextNodeAngleDif += Random.Range(-0.2f, 0.2f);
-				MakeBranchNodeAttempt (true);
-				MakeBranchNodeAttempt (false);
+				bool isFirstOneMaybeTarget = Random.Range(0f, 1f) < 0.5f;
+				MakeBranchNodeAttempt (true, isFirstOneMaybeTarget&&isTargetPath);
+				MakeBranchNodeAttempt (false, !isFirstOneMaybeTarget&&isTargetPath);
 			}
 			else {
 				MakeNextNodeAttempt ();
@@ -206,7 +211,11 @@ public class PathNode : MonoBehaviour {
 		float lineAlpha = familiarity;
 		Color auraColor;
 		Color lineColor;
-		if (isTravelable) {
+		if (isTargetPath) {
+			auraColor = new Color (13/255f, 255/255f, 0/255f);
+			lineColor = new Color (180/255f, 255/255f, 50/255f);
+		}
+		else if (isTravelable) {
 			auraColor = new Color (80/255f, 50/255f, 255/255f);
 			lineColor = new Color (60/255f, 255/255f, 255/255f);
 		}
@@ -230,9 +239,9 @@ public class PathNode : MonoBehaviour {
 	private void UpdatePos() {
 		if (previousNode == null) { return; }
 		displayPos = Vector3.Lerp (previousNode.transform.localPosition, transform.localPosition, locFromPrevNode);
-		float angleBetweenNodes = Mathf.Atan2 (displayPos.y - previousNode.transform.localPosition.y, displayPos.x - previousNode.transform.localPosition.x) * Mathf.Rad2Deg;
+		displayAngleBetweenNodes = Mathf.Atan2 (displayPos.y - previousNode.transform.localPosition.y, displayPos.x - previousNode.transform.localPosition.x) * Mathf.Rad2Deg;
 		lineSprite.transform.localPosition = Vector3.Lerp (displayPos, previousNode.transform.localPosition, 0.5f) - this.transform.localPosition;
-		lineSprite.transform.localEulerAngles = new Vector3 (0, 0, angleBetweenNodes);
+		lineSprite.transform.localEulerAngles = new Vector3 (0, 0, displayAngleBetweenNodes);
 	}
 	private void UpdateSize() {
 		if (previousNode == null) { return; }

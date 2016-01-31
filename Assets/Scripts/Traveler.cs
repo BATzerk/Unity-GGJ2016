@@ -27,22 +27,34 @@ public class Traveler : MonoBehaviour {
 		}
 		// More than one! Which do we go to??
 		else {
-			int bestFitIndex = -1;
-			float bestFitDistance = 999999;
-//			for (int i=0; i<nodeNext.nextNodes.Count; i++) {
-//				float distanceToMouse = Vector2.Distance(gameControllerRef.MousePosWorld, new Vector2(nodeNext.nextNodes[i].transform.localPosition.x,nodeNext.nextNodes[i].transform.localPosition.y));
-//				if (bestFitDistance > distanceToMouse) {
-//					bestFitDistance = distanceToMouse;
-//					bestFitIndex = i;
-//				}
-//			}
-			// There's a small chance we won't use the value we calculated.
-//			if (Random.Range(0f,1f)<0.1f || true) { bestFitIndex = Random.Range(0, nodeNext.nextNodes.Count); } // QQQ
-			if (Random.Range(0f,1f) < 0.2f) { bestFitIndex = Random.Range(0, nodeNext.nextNodes.Count); }
-			if (Input.GetAxis("Horizontal") < -0.1f) { bestFitIndex = 0; }
-			else if (Input.GetAxis("Horizontal") > 0.1f) { bestFitIndex = 1; }
-			else { bestFitIndex = Random.Range(0, nodeNext.nextNodes.Count); }
-			return nodeNext.nextNodes[bestFitIndex];
+			// No input?? Pick a rando!
+			if (inputForce == Vector2.zero) {
+				return nodeNext.nextNodes[Random.Range(0, nodeNext.nextNodes.Count)];
+			}
+			// Yes input! Use it!!
+			else {
+				int bestFitIndex = -1;
+				float bestFitAngleDif = 999999;
+				for (int i=0; i<nodeNext.nextNodes.Count; i++) {
+	//				float distanceToMouse = Vector2.Distance(gameControllerRef.MousePosWorld, new Vector2(nodeNext.nextNodes[i].transform.localPosition.x,nodeNext.nextNodes[i].transform.localPosition.y));
+	//				Vector3 thisNodePos = nodeNext.nextNodes[i].transform.localPosition;
+	//				float angleToNode = Mathf.Atan2 (thisNodePos.y-transform.localPo
+					float thisNodeAngle = nodeNext.nextNodes[i].DisplayAngleBetweenNodes;
+					float inputAngle = Mathf.Atan2 (inputForce.y, inputForce.x) * Mathf.Rad2Deg;
+					float angleDif = Mathf.Abs(GameUtils.GetDifferenceBetweenAngles(inputAngle, thisNodeAngle));
+					Debug.Log("inputAngle: " + inputAngle + "     angleDif: " + angleDif);
+					if (bestFitAngleDif > angleDif) {
+						bestFitAngleDif = angleDif;
+						bestFitIndex = i;
+					}
+				}
+				// There's a small chance we won't use the value we calculated.
+	//			if (Random.Range(0f,1f) < 0.2f) { bestFitIndex = Random.Range(0, nodeNext.nextNodes.Count); }
+	//			if (Input.GetAxis("Horizontal") < -0.1f) { bestFitIndex = 0; }
+	//			else if (Input.GetAxis("Horizontal") > 0.1f) { bestFitIndex = 1; }
+	//			else { bestFitIndex = Random.Range(0, nodeNext.nextNodes.Count); }
+				return nodeNext.nextNodes[bestFitIndex];
+			}
 		}
 	}
 
