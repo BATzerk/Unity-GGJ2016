@@ -27,7 +27,6 @@ public class GameController : MonoBehaviour {
 	// ================================================================
 	void Start () {
 		cameraRef = GameObject.FindGameObjectWithTag ("MainCamera").GetComponent<Camera> ();
-		pathNodeBoundsRect = new Rect ();
 		
 		pathNodePrefab = (GameObject)Resources.Load ("Prefabs/PathNode");
 		travelerPrefab = (GameObject) Resources.Load ("Prefabs/Traveler");
@@ -36,6 +35,8 @@ public class GameController : MonoBehaviour {
 	}
 	private void ResetGame() {
 		DestroyAllNodes ();
+		
+		pathNodeBoundsRect = new Rect ();
 		
 		// Make the first TWO nodes.
 		sourceNode = Instantiate (pathNodePrefab).GetComponent<PathNode> ();

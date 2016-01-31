@@ -11,7 +11,7 @@ public class CameraController : MonoBehaviour {
 	private Camera cameraScript;
 	// References
 	[SerializeField] private GameController gameControllerRef;
-//	[SerializeField] private Traveler player;
+	
 
 	
 	
