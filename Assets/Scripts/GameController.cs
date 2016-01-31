@@ -7,6 +7,7 @@ public class GameController : MonoBehaviour {
 	public PathNode sourceNode;
 	// Properties
 	private bool isPaused = false;
+	private float timeUntilCreateTraveler = -1;
 	private Vector3 mousePosWorld;
 	private Rect pathNodeBoundsRect;
 	// References
@@ -40,9 +41,9 @@ public class GameController : MonoBehaviour {
 		
 		// Make the first TWO nodes.
 		sourceNode = Instantiate (pathNodePrefab).GetComponent<PathNode> ();
-		sourceNode.Initialize (this, Vector2.zero, null, 10, 0, 0);
+		sourceNode.Initialize (this, Vector2.zero, null, 10, 0, 0, true);
 		PathNode secondNode = Instantiate (pathNodePrefab).GetComponent<PathNode> ();
-		secondNode.Initialize (this, new Vector2(0,0.5f), null, 4, 50, 0);
+		secondNode.Initialize (this, new Vector2(0,-0.5f), null, 4, 50, 0, true);
 		sourceNode.nextNodes.Add (secondNode);
 		secondNode.previousNode = sourceNode;
 
@@ -83,6 +84,16 @@ public class GameController : MonoBehaviour {
 		mousePosWorld = (Input.mousePosition - new Vector3(Screen.width*0.5f, Screen.height*0.5f)) / cameraRef.orthographicSize + cameraRef.transform.localPosition;
 
 		AcceptButtonInput ();
+
+		timeUntilCreateTraveler -= Mathf.Max(0, (1-Input.GetAxis ("Vertical")*1.6f) * Time.deltaTime);
+		if (timeUntilCreateTraveler <= 0) {
+			AddTraveler ();
+			timeUntilCreateTraveler = 2.5f;
+		}
+//		}
+//		else {
+//			timeUntilCreateTraveler = -1;
+//		}
 	}
 
 
@@ -94,9 +105,9 @@ public class GameController : MonoBehaviour {
 			isPaused = !isPaused;
 			Time.timeScale = isPaused ? 0 : 1;
 		}
-		else if (Input.GetKeyDown (KeyCode.Space)) {
-			AddTraveler ();
-		}
+//		else if (Input.GetKeyDown (KeyCode.Space)) {
+//			AddTraveler ();
+//		}
 	}
 
 	

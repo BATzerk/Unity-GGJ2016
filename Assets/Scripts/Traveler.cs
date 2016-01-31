@@ -29,18 +29,18 @@ public class Traveler : MonoBehaviour {
 		else {
 			int bestFitIndex = -1;
 			float bestFitDistance = 999999;
-			for (int i=0; i<nodeNext.nextNodes.Count; i++) {
-				float distanceToMouse = Vector2.Distance(gameControllerRef.MousePosWorld, new Vector2(nodeNext.nextNodes[i].transform.localPosition.x,nodeNext.nextNodes[i].transform.localPosition.y));
-				if (bestFitDistance > distanceToMouse) {
-					bestFitDistance = distanceToMouse;
-					bestFitIndex = i;
-				}
-			}
+//			for (int i=0; i<nodeNext.nextNodes.Count; i++) {
+//				float distanceToMouse = Vector2.Distance(gameControllerRef.MousePosWorld, new Vector2(nodeNext.nextNodes[i].transform.localPosition.x,nodeNext.nextNodes[i].transform.localPosition.y));
+//				if (bestFitDistance > distanceToMouse) {
+//					bestFitDistance = distanceToMouse;
+//					bestFitIndex = i;
+//				}
+//			}
 			// There's a small chance we won't use the value we calculated.
 //			if (Random.Range(0f,1f)<0.1f || true) { bestFitIndex = Random.Range(0, nodeNext.nextNodes.Count); } // QQQ
 			if (Random.Range(0f,1f) < 0.2f) { bestFitIndex = Random.Range(0, nodeNext.nextNodes.Count); }
-			if (Input.GetAxis("Horizontal") < -0.1f) { bestFitIndex = 1; }
-			else if (Input.GetAxis("Horizontal") > 0.1f) { bestFitIndex = 0; }
+			if (Input.GetAxis("Horizontal") < -0.1f) { bestFitIndex = 0; }
+			else if (Input.GetAxis("Horizontal") > 0.1f) { bestFitIndex = 1; }
 			else { bestFitIndex = Random.Range(0, nodeNext.nextNodes.Count); }
 			return nodeNext.nextNodes[bestFitIndex];
 		}

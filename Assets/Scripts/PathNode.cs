@@ -10,11 +10,13 @@ public class PathNode : MonoBehaviour {
 	[SerializeField] private SpriteRenderer auraSprite;
 	[SerializeField] private SpriteRenderer lineSprite;
 	// Properties
+	private bool isTravelable;
 	private Vector3 anchorPos; // where I AIM to be yo
 	private Vector3 displayPos;
 	private Vector3 vel = Vector3.zero;
 	private float creationSpeed;
 	public float familiarity = 0.3f; // determines brightness
+	private float familiarityRequiredToEndorseUntravelableBranch;
 	private float charge; // determines color
 	private float nextNodeAngleDif; // plan this for the future
 	private float locFromPrevNode = 0; // we start at 0 and make it up to 1.
@@ -23,8 +25,11 @@ public class PathNode : MonoBehaviour {
 	private GameController gameControllerRef;
 	public PathNode previousNode;
 	public List<PathNode> nextNodes;
+//	public List<PathNode> nextUntravelableNodes;
+	private PathNode nextUntravelableNode;
 
 	// Getters
+	public bool IsTravelable { get { return isTravelable; } }
 	public float LocFromPrevNode { get { return locFromPrevNode; } }
 	public Vector3 AnchorPos { get { return anchorPos; } }
 	private float AnchorAngleFromPreviousNodeAnchor {
@@ -32,7 +37,7 @@ public class PathNode : MonoBehaviour {
 			if (previousNode != null) {
 				return Mathf.Atan2 (anchorPos.y - previousNode.AnchorPos.y, anchorPos.x - previousNode.AnchorPos.x);
 			}
-			return Mathf.PI * 0.5f; // Default to up.
+			return -Mathf.PI * 0.5f; // Default to down.
 		}
 	}
 
@@ -40,15 +45,18 @@ public class PathNode : MonoBehaviour {
 	// ================================================================
 	//	Initialize
 	// ================================================================
-	public void Initialize (GameController _gameControllerRef, Vector2 _pos, PathNode _previousNode, int _numNodesUntilBranch, float _creationSpeed, float _nextNodeAngleDif) {
+	public void Initialize (GameController _gameControllerRef, Vector2 _pos, PathNode _previousNode, int _numNodesUntilBranch, float _creationSpeed, float _nextNodeAngleDif, bool _isTravelable) {
 		gameControllerRef = _gameControllerRef;
 		anchorPos = _pos;
 		this.transform.localPosition = anchorPos;
+		isTravelable = _isTravelable;
 		previousNode = _previousNode;
 		numNodesUntilBranch = _numNodesUntilBranch;
 		creationSpeed = _creationSpeed;
 		nextNodeAngleDif = _nextNodeAngleDif;
 		nextNodes = new List<PathNode> ();
+		familiarityRequiredToEndorseUntravelableBranch = familiarity + 0.06f;
+//		nextUntravelableNodes = new List<PathNode> ();
 
 		UpdatePosAndSize ();
 		GameUtils.SizeSprite (auraSprite, AURA_DIAMETER,AURA_DIAMETER);
@@ -59,6 +67,9 @@ public class PathNode : MonoBehaviour {
 
 	private void MakeNextNodeAttempt () {
 		float distanceToNextNode = 1f;
+		if (!isTravelable) {
+			distanceToNextNode *= 0.4f;
+		}
 		float angleToNextNode = AnchorAngleFromPreviousNodeAnchor + nextNodeAngleDif;//Random.Range (-0.5f, 0.5f);
 		Vector3 nextNodePos = anchorPos + new Vector3 (Mathf.Cos (angleToNextNode)*distanceToNextNode, Mathf.Sin (angleToNextNode)*distanceToNextNode, 0);
 		AddNextNode (nextNodePos);
@@ -67,15 +78,19 @@ public class PathNode : MonoBehaviour {
 	private void MakeBranchNodeAttempt(bool isLeftTurn) {
 		float differenceVolume = Random.Range (0.5f, 1.5f);
 		float distanceToNextNode = 1.8f * differenceVolume;
+		if (!isTravelable) {
+			distanceToNextNode *= 0.4f;
+		}
 		float angleToNextNode = AnchorAngleFromPreviousNodeAnchor + (isLeftTurn ? -0.5f : 0.5f) * differenceVolume;
 		Vector3 nextNodePos = anchorPos + new Vector3 (Mathf.Cos (angleToNextNode)*distanceToNextNode, Mathf.Sin (angleToNextNode)*distanceToNextNode, 0);
 
 		// Make the next node!!
 		numNodesUntilBranch = Random.Range (2, 3);
+		if (!isTravelable) { numNodesUntilBranch = 1; }
 		nextNodeAngleDif = Random.Range (-0.2f, 0.2f);
 		AddNextNode (nextNodePos);
 	}
-
+	
 	private void AddNextNode(Vector3 nextNodePos) {
 		// Creation speed too slow? Ehh, cut it out here, eh.
 		float newNodeCreationSpeed = creationSpeed*creationSpeedFriction;
@@ -85,8 +100,20 @@ public class PathNode : MonoBehaviour {
 		
 		GameObject pathNodePrefab = (GameObject)Resources.Load ("Prefabs/PathNode");
 		PathNode newNode = Instantiate (pathNodePrefab).GetComponent<PathNode> ();
-		newNode.Initialize (gameControllerRef, nextNodePos, this, numNodesUntilBranch, newNodeCreationSpeed, nextNodeAngleDif);
+		newNode.Initialize (gameControllerRef, nextNodePos, this, numNodesUntilBranch, newNodeCreationSpeed, nextNodeAngleDif, isTravelable);
 		nextNodes.Add (newNode);
+	}
+	private void AddNextUntravelableNode() {
+		float newNodeCreationSpeed = 10*creationSpeedFriction;
+		float differenceVolume = Random.Range (0.5f, 1.5f);
+		float distanceToNextNode = 1f * differenceVolume;
+		float angleToNextNode = AnchorAngleFromPreviousNodeAnchor + (Random.Range (0f,1f)<0.5 ? -0.5f : 0.5f) * differenceVolume;
+		Vector3 nextNodePos = anchorPos + new Vector3 (Mathf.Cos (angleToNextNode)*distanceToNextNode, Mathf.Sin (angleToNextNode)*distanceToNextNode, 0);
+		
+		GameObject pathNodePrefab = (GameObject)Resources.Load ("Prefabs/PathNode");
+		PathNode newNode = Instantiate (pathNodePrefab).GetComponent<PathNode> ();
+		newNode.Initialize (gameControllerRef, nextNodePos, this, 2, newNodeCreationSpeed, nextNodeAngleDif, false);
+		nextUntravelableNode = (newNode);
 	}
 
 
@@ -126,6 +153,19 @@ public class PathNode : MonoBehaviour {
 		UpdateColor ();
 		UpdateSize ();
 		UpdateAndApplyVel ();
+		
+		// Maybe make next untravelable node!
+		/*
+		if (familiarity > familiarityRequiredToEndorseUntravelableBranch) {
+			familiarityRequiredToEndorseUntravelableBranch += 0.6f * familiarity;
+			if (nextUntravelableNode == null) {
+				AddNextUntravelableNode ();
+			}
+			else {
+				nextUntravelableNode.AddCreationSpeedToChildren(10);
+			}
+		}
+		*/
 
 		// Already made our next guy? Okay then, don't do anything.
 		if (locFromPrevNode >= 1) { return; }
@@ -135,8 +175,11 @@ public class PathNode : MonoBehaviour {
 		// Apply friction!
 		creationSpeed *= Mathf.Pow(creationSpeedFriction, Time.deltaTime*GameProperties.WORLD_TIME_SCALE);
 
+		// Add to loc!
 		float distanceToPreviousNode = Vector3.Distance (anchorPos, previousNode.AnchorPos);
 		locFromPrevNode += creationSpeed/distanceToPreviousNode*Time.deltaTime;
+
+		// Maybe make next node(s)!
 		if (locFromPrevNode >= 1) {
 			// DO branch.
 			if (numNodesUntilBranch-- <= 0) {
@@ -161,13 +204,23 @@ public class PathNode : MonoBehaviour {
 //		Color lineColor = Color.Lerp (new Color(0/255f,208/255f,255/255f), new Color(0/255f,64/255f,255/255f), lerpAmount);
 		float auraAlpha = Mathf.Min (0.7f, (familiarity-0.15f) * 0.3f);
 		float lineAlpha = familiarity;
-		Color auraColor = new Color (80/255f, 50/255f, 255/255f);
-		Color lineColor = new Color (60/255f, 255/255f, 255/255f);
+		Color auraColor;
+		Color lineColor;
+		if (isTravelable) {
+			auraColor = new Color (80/255f, 50/255f, 255/255f);
+			lineColor = new Color (60/255f, 255/255f, 255/255f);
+		}
+		else {
+			auraColor = new Color (255/255f, 100/255f, 0/255f);
+			lineColor = new Color (255/255f, 200/255f, 0/255f);
+		}
 		auraColor = new Color (auraColor.r,auraColor.g,auraColor.b, auraAlpha);
 		lineColor = new Color (lineColor.r,lineColor.g,lineColor.b, lineAlpha);
 		auraSprite.color = auraColor;
 		lineSprite.color = lineColor;
-//		auraSprite.enabled = false; // QQQ
+		if (!isTravelable) {
+			auraSprite.enabled = false;
+		}
 	}
 	
 	private void UpdatePosAndSize() {
@@ -183,7 +236,8 @@ public class PathNode : MonoBehaviour {
 	}
 	private void UpdateSize() {
 		if (previousNode == null) { return; }
-		float thickness = 0.02f + familiarity * 0.2f;
+		float thickness = 0.05f + familiarity * 0.2f;
+		if (!isTravelable) { thickness *= 0.4f; }
 		float displayDistanceToPrevNode = Vector3.Distance (displayPos, previousNode.transform.localPosition);
 		GameUtils.SizeSprite (lineSprite, displayDistanceToPrevNode, thickness);
 	}
@@ -234,8 +288,20 @@ public class PathNode : MonoBehaviour {
 	}
 
 	public void PushFromTravelerInputForce(Vector2 inputForce) {
-		float forceVolume = 0.004f; // more is greater impact
-		vel += new Vector3(inputForce.x*forceVolume, inputForce.y*forceVolume, 0);
+		float forceVolumeX = 0.001f; // more is greater impact
+		float forceVolumeY = 0.0003f; // more is greater impact
+		vel += new Vector3(inputForce.x*forceVolumeX, inputForce.y*forceVolumeY, 0);
+	}
+
+	public void AddCreationSpeedToChildren (float _creationSpeedAdd) {
+		if (nextNodes.Count == 0) {
+			creationSpeed += _creationSpeedAdd;
+		}
+		else {
+			for (int i=0; i<nextNodes.Count; i++) {
+				nextNodes[i].AddCreationSpeedToChildren(_creationSpeedAdd / (float)nextNodes.Count);
+			}
+		}
 	}
 
 

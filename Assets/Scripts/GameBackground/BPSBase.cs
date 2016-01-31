@@ -21,7 +21,7 @@ public class BPSBase : MonoBehaviour {
 	// ================================================================
 	//  Initialize
 	// ================================================================
-	protected void Start () {
+	protected void Awake () {
 		// Identify references!
 		gameBackgroundRef = this.transform.parent.gameObject.GetComponent<GameBackground> ();
 		cameraControllerRef = gameBackgroundRef.GetCameraControllerRef ();
