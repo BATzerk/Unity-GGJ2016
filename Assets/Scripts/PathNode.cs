@@ -4,6 +4,7 @@ using System.Collections.Generic;
 
 public class PathNode : MonoBehaviour {
 	// Constants
+	private const float AURA_DIAMETER = 10f;
 	private const float creationSpeedFriction = 0.95f;
 	// Components
 	[SerializeField] private SpriteRenderer auraSprite;
@@ -15,18 +16,16 @@ public class PathNode : MonoBehaviour {
 	private float creationSpeed;
 	public float familiarity = 0.3f; // determines brightness
 	private float charge; // determines color
-//	private float delayToCreateNextNode; // doesn't change.
-//	private float timeUntilCreateNextNode; // does change.
 	private float nextNodeAngleDif; // plan this for the future
 	private float locFromPrevNode = 0; // we start at 0 and make it up to 1.
 	private int numNodesUntilBranch;
-	private Rect boundsRect;
 	// References
 	private GameController gameControllerRef;
 	public PathNode previousNode;
 	public List<PathNode> nextNodes;
 
 	// Getters
+	public float LocFromPrevNode { get { return locFromPrevNode; } }
 	public Vector3 AnchorPos { get { return anchorPos; } }
 	private float AnchorAngleFromPreviousNodeAnchor {
 		get {
@@ -37,8 +36,10 @@ public class PathNode : MonoBehaviour {
 		}
 	}
 
-
-	// Constructor
+	
+	// ================================================================
+	//	Initialize
+	// ================================================================
 	public void Initialize (GameController _gameControllerRef, Vector2 _pos, PathNode _previousNode, int _numNodesUntilBranch, float _creationSpeed, float _nextNodeAngleDif) {
 		gameControllerRef = _gameControllerRef;
 		anchorPos = _pos;
@@ -48,13 +49,11 @@ public class PathNode : MonoBehaviour {
 		creationSpeed = _creationSpeed;
 		nextNodeAngleDif = _nextNodeAngleDif;
 		nextNodes = new List<PathNode> ();
-		lineSprite = GetComponentInChildren<SpriteRenderer> ();
 
 		UpdatePosAndSize ();
+		GameUtils.SizeSprite (auraSprite, AURA_DIAMETER,AURA_DIAMETER);
 
-		boundsRect = new Rect (0, 0, 20, 20);
-
-//		timeUntilCreateNextNode = delayToCreateNextNode = 1f / creationSpeed;
+		gameControllerRef.UpdatePathNodeBoundsRect (anchorPos);
 	}
 
 
@@ -78,11 +77,6 @@ public class PathNode : MonoBehaviour {
 	}
 
 	private void AddNextNode(Vector3 nextNodePos) {
-		// Outta bounds? Get outta town!
-//		if (!boundsRect.Contains(nextNodePos)) {
-//			return;
-//		}
-
 		// Creation speed too slow? Ehh, cut it out here, eh.
 		float newNodeCreationSpeed = creationSpeed*creationSpeedFriction;
 		if (newNodeCreationSpeed < 0.1f) {
@@ -116,7 +110,10 @@ public class PathNode : MonoBehaviour {
 
 
 
-
+	
+	// ================================================================
+	//	Update
+	// ================================================================
 	private void Update() {
 		// Maybe expire!
 		// QQQ
@@ -127,7 +124,7 @@ public class PathNode : MonoBehaviour {
 //		}
 
 		UpdateColor ();
-		UpdateLineThickness ();
+		UpdateSize ();
 		UpdateAndApplyVel ();
 
 		// Already made our next guy? Okay then, don't do anything.
@@ -160,26 +157,35 @@ public class PathNode : MonoBehaviour {
 
 	private void UpdateColor () {
 //		Color myColor = Color.Lerp(Color.blue, Color.yellow, 0.5f + charge*0.5f);
-		float lerpAmount = Mathf.PerlinNoise (transform.localPosition.x/80f, transform.localPosition.y/80f);
-		Color myColor = Color.Lerp (new Color(0/255f,208/255f,255/255f), new Color(0/255f,64/255f,255/255f), lerpAmount);
-		myColor = new Color (myColor.r, myColor.g, myColor.b, 0.5f + familiarity*0.5f);
-		lineSprite.color = myColor;
-		auraSprite.color = new Color (myColor.r, myColor.g, myColor.b, (familiarity-0.15f) * 0.3f);
+//		float lerpAmount = Mathf.PerlinNoise (transform.localPosition.x/80f, transform.localPosition.y/80f);
+//		Color lineColor = Color.Lerp (new Color(0/255f,208/255f,255/255f), new Color(0/255f,64/255f,255/255f), lerpAmount);
+		float auraAlpha = Mathf.Min (0.7f, (familiarity-0.15f) * 0.3f);
+		float lineAlpha = familiarity;
+		Color auraColor = new Color (80/255f, 50/255f, 255/255f);
+		Color lineColor = new Color (60/255f, 255/255f, 255/255f);
+		auraColor = new Color (auraColor.r,auraColor.g,auraColor.b, auraAlpha);
+		lineColor = new Color (lineColor.r,lineColor.g,lineColor.b, lineAlpha);
+		auraSprite.color = auraColor;
+		lineSprite.color = lineColor;
+//		auraSprite.enabled = false; // QQQ
 	}
 	
 	private void UpdatePosAndSize() {
+		UpdatePos ();
+		UpdateSize ();
+	}
+	private void UpdatePos() {
 		if (previousNode == null) { return; }
 		displayPos = Vector3.Lerp (previousNode.transform.localPosition, transform.localPosition, locFromPrevNode);
 		float angleBetweenNodes = Mathf.Atan2 (displayPos.y - previousNode.transform.localPosition.y, displayPos.x - previousNode.transform.localPosition.x) * Mathf.Rad2Deg;
 		lineSprite.transform.localPosition = Vector3.Lerp (displayPos, previousNode.transform.localPosition, 0.5f) - this.transform.localPosition;
 		lineSprite.transform.localEulerAngles = new Vector3 (0, 0, angleBetweenNodes);
-		UpdateLineThickness ();
 	}
-	private void UpdateLineThickness() {
+	private void UpdateSize() {
 		if (previousNode == null) { return; }
 		float thickness = 0.02f + familiarity * 0.2f;
-		float distanceBetweenNodes = Vector3.Distance (displayPos, previousNode.transform.localPosition);
-		GameUtils.SizeSprite (lineSprite, distanceBetweenNodes, thickness);
+		float displayDistanceToPrevNode = Vector3.Distance (displayPos, previousNode.transform.localPosition);
+		GameUtils.SizeSprite (lineSprite, displayDistanceToPrevNode, thickness);
 	}
 
 	private void UpdateAndApplyVel() {
@@ -190,18 +196,20 @@ public class PathNode : MonoBehaviour {
 		vel += (anchorPos-transform.localPosition) / 200f;
 
 		// Drift!
-		float timeOffset = Time.time*0.2f;
+		float timeOffset = Time.time*0.05f;
 		float posX = anchorPos.x;
 		float posY = anchorPos.y;
 		float forceX = Mathf.PerlinNoise (posX*0.04f+timeOffset, posY*0.04f+timeOffset) - 0.5f;
 		float forceY = Mathf.PerlinNoise (posX*0.038f+200+timeOffset, posY*0.037f-300+timeOffset) - 0.5f;
 //		float forceX = Mathf.Sin (timeOffset);
 //		float forceY = Mathf.Cos (timeOffset);
-//		float distanceToMouse = Vector3.Distance (this.transform.localPosition, gameControllerRef.MousePosWorld);
-//		float forceX = (gameControllerRef.MousePosWorld.x - transform.localPosition.x) / distanceToMouse;
-//		float forceY = (gameControllerRef.MousePosWorld.y - transform.localPosition.y) / distanceToMouse;
+//	float distanceToMouse = Vector3.Distance (this.transform.localPosition, gameControllerRef.MousePosWorld);
+//	float forceX = (gameControllerRef.MousePosWorld.x - transform.localPosition.x) / distanceToMouse;
+//	float forceY = (gameControllerRef.MousePosWorld.y - transform.localPosition.y) / distanceToMouse;
 		forceX *= 0.01f;
 		forceY *= 0.01f;
+//		forceX += Input.GetAxis ("Horizontal") * 0.003f * Mathf.Max(0, 2-familiarity);
+//		forceY += Input.GetAxis ("Vertical")   * 0.003f * Mathf.Max(0, 2-familiarity);
 		vel += new Vector3 (forceX, forceY);
 
 		this.transform.localPosition += vel;
@@ -210,12 +218,14 @@ public class PathNode : MonoBehaviour {
 	}
 
 
-
-	// Events
+	
+	// ================================================================
+	//	Events
+	// ================================================================
 	public void OnTravelerEnterMe(Traveler traveler) {
 		// Increase familiarity!
 		familiarity += 0.03f;
-		if (familiarity > 1) { familiarity = 1; }
+//		if (familiarity > 1) { familiarity = 1; }
 		// Shift charge!
 		charge += (traveler.Charge*0.4f-charge) / 8f;
 	}
@@ -223,6 +233,10 @@ public class PathNode : MonoBehaviour {
 		creationSpeed = 10f;
 	}
 
+	public void PushFromTravelerInputForce(Vector2 inputForce) {
+		float forceVolume = 0.004f; // more is greater impact
+		vel += new Vector3(inputForce.x*forceVolume, inputForce.y*forceVolume, 0);
+	}
 
 
 	public void Expire() {

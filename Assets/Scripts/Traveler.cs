@@ -37,32 +37,37 @@ public class Traveler : MonoBehaviour {
 				}
 			}
 			// There's a small chance we won't use the value we calculated.
-			if (Random.Range(0f,1f)<0.1f || true) { bestFitIndex = Random.Range(0, nodeNext.nextNodes.Count); } // QQQ
+//			if (Random.Range(0f,1f)<0.1f || true) { bestFitIndex = Random.Range(0, nodeNext.nextNodes.Count); } // QQQ
+			if (Random.Range(0f,1f) < 0.2f) { bestFitIndex = Random.Range(0, nodeNext.nextNodes.Count); }
+			if (Input.GetAxis("Horizontal") < -0.1f) { bestFitIndex = 1; }
+			else if (Input.GetAxis("Horizontal") > 0.1f) { bestFitIndex = 0; }
+			else { bestFitIndex = Random.Range(0, nodeNext.nextNodes.Count); }
 			return nodeNext.nextNodes[bestFitIndex];
 		}
 	}
 
-
-	// Initialize!
+	
+	
+	// ================================================================
+	//	Initialize
+	// ================================================================
 	public void Initialize (GameController _gameControllerRef, PathNode _sourceNode, float _charge) {
 		gameControllerRef = _gameControllerRef;
 		sourceNode = _sourceNode;
 		charge = _charge;
 		ReturnToSourceNode ();
 		loc = 0;
-		speed = Random.Range (0.1f, 0.3f);
+		speed = Random.Range (0.06f, 0.1f);
 		diameter = 0.1f;
 		auraSprite.color = new Color (255/255f, 140/255f, 0/255f, 0.2f);
 		bodySprite.color = new Color (255/255f, 234/255f, 0/255f);
 	}
-
-	private void ReturnToSourceNode() {
-		nodePrev = sourceNode;
-		nodeNext = null; // this'll get set automatically.
-		loc = 0;
-	}
-
-	void Update () {
+	
+	
+	// ================================================================
+	//	Update
+	// ================================================================
+	private void Update () {
 		// No next node?? See if we can make me one yet.
 		if (nodeNext == null) {
 			if (nodePrev!=null && nodePrev.nextNodes.Count>0) {
@@ -74,6 +79,7 @@ public class Traveler : MonoBehaviour {
 		if (nodePrev == null || nodeNext == null) { return; }
 
 		UpdateInputForce ();
+		UpdatePathNodesPushFromInputForce ();
 		UpdateSpeed ();
 		UpdateLoc ();
 		UpdatePosition ();
@@ -82,6 +88,10 @@ public class Traveler : MonoBehaviour {
 
 	private void UpdateInputForce() {
 		inputForce = new Vector2 (Input.GetAxis ("Horizontal"), Input.GetAxis ("Vertical"));
+	}
+	private void UpdatePathNodesPushFromInputForce() {
+//		if (nodePrev != null) { nodePrev.PushFromTravelerInputForce (inputForce); }
+		if (nodeNext != null) { nodeNext.PushFromTravelerInputForce (inputForce); }
 	}
 
 	private void UpdateSpeed () {
@@ -97,8 +107,7 @@ public class Traveler : MonoBehaviour {
 		if (loc > 1) {
 			// NO next node?? Go back to the source!
 			if (nodeNext.nextNodes.Count == 0) {
-				nodeNext.OnTravelerReachMyDeadEnd ();
-				ReturnToSourceNode ();
+				OnReachedDeadEnd ();
 			}
 			// YES next node? Go onto it!
 			else {
@@ -128,13 +137,30 @@ public class Traveler : MonoBehaviour {
 	private void UpdateSize() {
 		float displayDiameter = diameter;
 		if (nodeNext == null || nodeNext.nextNodes.Count == 0) {
-			displayDiameter *= 1-loc; // Shrink before I disappear!
+			displayDiameter *= Mathf.Max(0, nodeNext.LocFromPrevNode-loc); // Shrink before I disappear!
 		}
 		
-		GameUtils.SizeSprite (auraSprite, displayDiameter*24, displayDiameter*24);
+		GameUtils.SizeSprite (auraSprite, displayDiameter*16, displayDiameter*16);
 		GameUtils.SizeSprite (bodySprite, displayDiameter, displayDiameter);
 	}
 
+
+	
+	
+	// ================================================================
+	//	Events
+	// ================================================================
+	private void ReturnToSourceNode() {
+		nodePrev = sourceNode;
+		nodeNext = null; // this'll get set automatically.
+		loc = 0;
+	}
+	private void OnReachedDeadEnd() {
+		nodeNext.OnTravelerReachMyDeadEnd ();
+		Destroy (this.gameObject);
+//		ReturnToSourceNode ();
+	}
+	
 
 }
 

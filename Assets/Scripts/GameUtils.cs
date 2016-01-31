@@ -15,6 +15,24 @@ public class GameUtils {
 		sprite.transform.localScale = new Vector2(desiredWidth/imgW, desiredHeight/imgH);
 	}
 
+	
+	public static void UpdateRectFromPoint(ref Rect rect, Vector2 point) {
+		if (rect.xMin > point.x) { // LEFT
+			rect.xMin = point.x;
+		}
+		if (rect.xMax < point.x) { // RIGHT
+			rect.xMax = point.x;
+		}
+		if (rect.yMin > point.y) { // TOP
+			rect.yMin = point.y;
+		}
+		if (rect.yMax < point.y) { // BOTTOM
+			rect.yMax = point.y;
+		}
+	}
+
+
+
 }
 
 
