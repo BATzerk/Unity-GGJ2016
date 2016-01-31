@@ -127,7 +127,7 @@ public class Traveler : MonoBehaviour {
 
 	private void UpdateSize() {
 		float displayDiameter = diameter;
-		if (nodeNext != null && nodeNext.nextNodes.Count == 0) {
+		if (nodeNext == null || nodeNext.nextNodes.Count == 0) {
 			displayDiameter *= 1-loc; // Shrink before I disappear!
 		}
 		

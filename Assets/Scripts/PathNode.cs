@@ -190,16 +190,16 @@ public class PathNode : MonoBehaviour {
 		vel += (anchorPos-transform.localPosition) / 200f;
 
 		// Drift!
-		float timeOffset = Time.time*0.02f;
+		float timeOffset = Time.time*0.2f;
 		float posX = anchorPos.x;
 		float posY = anchorPos.y;
-//		float forceX = Mathf.PerlinNoise (posX*0.04f+timeOffset, posY*0.04f+timeOffset) - 0.5f;
-		//		float forceY = Mathf.PerlinNoise (posX*0.038f+200+timeOffset, posY*0.037f-300+timeOffset) - 0.5f;
+		float forceX = Mathf.PerlinNoise (posX*0.04f+timeOffset, posY*0.04f+timeOffset) - 0.5f;
+		float forceY = Mathf.PerlinNoise (posX*0.038f+200+timeOffset, posY*0.037f-300+timeOffset) - 0.5f;
 //		float forceX = Mathf.Sin (timeOffset);
-		//		float forceY = Mathf.Cos (timeOffset);
-		float distanceToMouse = Vector3.Distance (this.transform.localPosition, gameControllerRef.MousePosWorld);
-		float forceX = (gameControllerRef.MousePosWorld.x - transform.localPosition.x) / distanceToMouse;
-		float forceY = (gameControllerRef.MousePosWorld.y - transform.localPosition.y) / distanceToMouse;
+//		float forceY = Mathf.Cos (timeOffset);
+//		float distanceToMouse = Vector3.Distance (this.transform.localPosition, gameControllerRef.MousePosWorld);
+//		float forceX = (gameControllerRef.MousePosWorld.x - transform.localPosition.x) / distanceToMouse;
+//		float forceY = (gameControllerRef.MousePosWorld.y - transform.localPosition.y) / distanceToMouse;
 		forceX *= 0.01f;
 		forceY *= 0.01f;
 		vel += new Vector3 (forceX, forceY);
