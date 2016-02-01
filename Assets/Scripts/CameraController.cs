@@ -33,7 +33,7 @@ public class CameraController : MonoBehaviour {
 
 	private void UpdatePosAndZoom () {
 		Vector3 targetPos = new Vector3(gameControllerRef.PathNodeBoundsRect.center.x, gameControllerRef.PathNodeBoundsRect.center.y, POS_Z);
-		float targetZoom = gameControllerRef.PathNodeBoundsRect.height * 0.7f; // Basically HACK-ed.
+		float targetZoom = Mathf.Max(gameControllerRef.PathNodeBoundsRect.height*0.7f, gameControllerRef.PathNodeBoundsRect.width*0.4f); // Basically HACK-ed.
 
 		transform.localPosition += (targetPos-transform.localPosition) / POS_EASING;
 		cameraScript.orthographicSize += (targetZoom-cameraScript.orthographicSize) / ZOOM_EASING;

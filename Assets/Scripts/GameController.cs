@@ -52,7 +52,7 @@ public class GameController : MonoBehaviour {
 		pathNodeBoundsRect = new Rect ();
 		targetPathLength = 0;
 		isGameOver = false;
-		timeUntilGameEnds = 60f;
+		timeUntilGameEnds = 45f;
 		scoreText.enabled = false;
 		gameOverText.enabled = false;
 		
